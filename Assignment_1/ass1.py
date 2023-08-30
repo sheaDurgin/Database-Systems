@@ -1,5 +1,6 @@
 import os
 from bs4 import BeautifulSoup
+import csv
 
 def clean_text(text):
     # Remove newline and tab characters, and replace them with spaces
@@ -27,8 +28,9 @@ output_tsv_path = '../output.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
-with open(output_tsv_path, 'w', encoding='utf-8') as output_tsv:
-    output_tsv.write("Title\tAuthor Names\tAuthor Affiliations\tAuthor Emails\tAbstract\tKeywords\n")
+with open(output_tsv_path, 'w', encoding='utf-8', newline='') as output_tsv:
+    tsv_writer = csv.writer(output_tsv, delimiter='\t')
+    tsv_writer.writerow(["Title", "Author Name", "Affiliation", "Email", "Abstract", "Keywords"])
 
     for filename in html_files:
         if filename.endswith('.html'):
@@ -44,5 +46,4 @@ with open(output_tsv_path, 'w', encoding='utf-8') as output_tsv:
                 keywords = extract_keywords(keywords_element)
 
                 for author_info in author_info_list:
-                    output_line = f"{title}\t{author_info['name']}\t{author_info['affiliation']}\t{author_info['email']}\t{abstract}\t{' | '.join(keywords)}\n"
-                    output_tsv.write(output_line)
+                    tsv_writer.writerow([title, author_info['name'], author_info['affiliation'], author_info['email'], abstract, ' | '.join(keywords)])
