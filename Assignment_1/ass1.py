@@ -1,6 +1,8 @@
 import os
 from bs4 import BeautifulSoup
 
+# Shea and SJ
+
 # Path to the folder containing HTML files
 folder_path = '../arxiv-papers/'
 
