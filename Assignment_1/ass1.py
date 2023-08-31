@@ -1,18 +1,19 @@
 import os
 from bs4 import BeautifulSoup
 import csv
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
 
 def clean_text(text):
     # Remove newline and tab characters, and replace them with spaces
     return ' '.join(text.strip().split())
 
-def extract_author_info(author):
-    name = clean_text(author.find('span', class_='ltx_personname').get_text(strip=True))
-    affiliation_element = author.find('span', class_='ltx_role_address')
-    affiliation = clean_text(affiliation_element.get_text(strip=True)) if affiliation_element else ""
-    email_element = author.find('span', class_='ltx_role_email')
-    email = clean_text(email_element.get_text(strip=True)) if email_element else ""
-    return {'name': name, 'affiliation': affiliation, 'email': email}
+def extract_text_from_spans(element, class_name, element_name):
+    spans = element.find_all('span', class_=class_name)
+    if spans:
+        return ' '.join([clean_text(span.get_text(strip=True)) for span in spans])
+    else:
+        return f"no {element_name}"
 
 def extract_keywords(keywords_element):
     keywords = []
@@ -23,27 +24,38 @@ def extract_keywords(keywords_element):
             keywords = [keyword.strip() for keyword in keywords_text.split(',')]
     return keywords
 
-folder_path = '../arxiv-papers/'
+folder_path = '../arxiv-papers/01/'
 output_tsv_path = '../output.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
+def process_html_file(filename):
+    if filename.endswith('.html'):
+        with open(os.path.join(folder_path, filename), 'r', encoding='utf-8') as html_file:
+            content = html_file.read()
+            soup = BeautifulSoup(content, 'html.parser')
+
+            title = clean_text(soup.title.text)
+
+            authors = soup.find_all('div', class_='ltx_authors')
+            author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
+            affiliations = [extract_text_from_spans(author, 'ltx_role_address', 'Affiliations') for author in authors]
+            emails = [extract_text_from_spans(author, 'ltx_role_email', 'Emails') for author in authors]
+
+            abstract_element = soup.find('p', class_='ltx_p')
+            abstract = clean_text(abstract_element.get_text(strip=True)) if abstract_element else ""
+
+            keywords_element = soup.find('div', class_='ltx_classification')
+            keywords = extract_keywords(keywords_element)
+
+            return [title, ' '.join(author_names), ' '.join(affiliations), ' '.join(emails), abstract, ' | '.join(keywords)]
+
+with ProcessPoolExecutor() as executor:
+    results = list(tqdm(executor.map(process_html_file, html_files), total=len(html_files), desc="Reading HTML Files"))
+
 with open(output_tsv_path, 'w', encoding='utf-8', newline='') as output_tsv:
     tsv_writer = csv.writer(output_tsv, delimiter='\t')
-    tsv_writer.writerow(["Title", "Author Name", "Affiliation", "Email", "Abstract", "Keywords"])
+    tsv_writer.writerow(["Title", "Author Names", "Affiliations", "Emails", "Abstract", "Keywords"])
 
-    for filename in html_files:
-        if filename.endswith('.html'):
-            with open(os.path.join(folder_path, filename), 'r', encoding='utf-8') as html_file:
-                content = html_file.read()
-                soup = BeautifulSoup(content, 'html.parser')
-
-                title = clean_text(soup.title.text)
-                authors = soup.find_all('div', class_='ltx_authors')
-                author_info_list = [extract_author_info(author) for author in authors]
-                abstract = clean_text(soup.find('p', class_='ltx_p').get_text(strip=True))
-                keywords_element = soup.find('div', class_='ltx_classification')
-                keywords = extract_keywords(keywords_element)
-
-                for author_info in author_info_list:
-                    tsv_writer.writerow([title, author_info['name'], author_info['affiliation'], author_info['email'], abstract, ' | '.join(keywords)])
+    for result in results:
+        tsv_writer.writerow(result)
