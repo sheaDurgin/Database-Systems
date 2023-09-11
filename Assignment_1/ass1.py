@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import csv
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
+import re
 
 def clean_text(text):
     # Remove newline and tab characters, and replace them with spaces
@@ -19,13 +20,23 @@ def extract_keywords(keywords_element):
     keywords = []
     if keywords_element:
         keywords_text = clean_text(keywords_element.get_text(strip=True))
-        if "keywords:" in keywords_text.lower():
-            keywords_text = keywords_text.lower().replace("keywords:", "")
-            keywords = [keyword.strip() for keyword in keywords_text.split(',')]
+        pattern = re.compile(r'\b(key ?-?words)(.*)\s*:\s*')
+        if re.search(pattern, keywords_text.lower()):
+            keywords_text = re.sub(pattern, "", keywords_text.lower())
+        # if "keywords:" in keywords_text.lower():
+        #     keywords_text = keywords_text.lower().replace("keywords:", "")
+        keywords = [keyword.strip() for keyword in keywords_text.split(',')]
     return keywords
 
-folder_path = '../arxiv-papers/01/'
-output_tsv_path = '../output.tsv'
+def remove_superscripts(soup):
+    # may need to add more elements
+    for element in soup.find_all('math'):
+        element.extract()
+
+# folder_path = '../arxiv-papers/'
+folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
+# chane to within Ass1 folder
+output_tsv_path = '../output_testing.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
@@ -38,6 +49,7 @@ def process_html_file(filename):
             title = clean_text(soup.title.text)
 
             authors = soup.find_all('div', class_='ltx_authors')
+            remove_superscripts(soup)
             author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
             affiliations = [extract_text_from_spans(author, 'ltx_role_address', 'Affiliations') for author in authors]
             emails = [extract_text_from_spans(author, 'ltx_role_email', 'Emails') for author in authors]
@@ -45,16 +57,21 @@ def process_html_file(filename):
             abstract_element = soup.find('p', class_='ltx_p')
             abstract = clean_text(abstract_element.get_text(strip=True)) if abstract_element else ""
 
-            keywords_element = soup.find('div', class_='ltx_classification')
+            pattern = re.compile(r'.*key ?-?words.*', re.IGNORECASE)
+            keywords_element = soup.find('div', class_="ltx_keywords") or soup.find('div', class_='ltx_classification') or soup.find(['div', 'span'], text=pattern)
+            # keywords_element = soup.find(['div', 'span'], text=pattern)
             keywords = extract_keywords(keywords_element)
 
             return [title, ' '.join(author_names), ' '.join(affiliations), ' '.join(emails), abstract, ' | '.join(keywords)]
 
+# Process HTML files in parallel (and use progress bar)
 with ProcessPoolExecutor() as executor:
     results = list(tqdm(executor.map(process_html_file, html_files), total=len(html_files), desc="Reading HTML Files"))
 
+# Write to TSV file
 with open(output_tsv_path, 'w', encoding='utf-8', newline='') as output_tsv:
     tsv_writer = csv.writer(output_tsv, delimiter='\t')
+    # Header row
     tsv_writer.writerow(["Title", "Author Names", "Affiliations", "Emails", "Abstract", "Keywords"])
 
     for result in results:
