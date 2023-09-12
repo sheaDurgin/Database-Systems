@@ -26,7 +26,7 @@ def extract_keywords(keywords_element):
         if "keywords:" in keywords_text.lower():
             keywords_text = keywords_text.lower().replace("keywords:", "")
         if "index terms:" in keywords_text.lower():
-            keywords_text = keywords_text.lower().replace("keywords:", "")
+            keywords_text = keywords_text.lower().replace("index terms:", "")
         keywords = [keyword.strip() for keyword in keywords_text.split(',')]
     return keywords
 
@@ -39,7 +39,7 @@ def remove_superscripts(soup):
 #folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
 folder_path = '../arxiv-papers/'
 # chane to within Ass1 folder
-output_tsv_path = '../output_testing5.tsv'
+output_tsv_path = '../output.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
@@ -65,7 +65,10 @@ def process_html_file(filename):
             authors = soup.find_all('div', class_='ltx_authors')
             remove_superscripts(soup)
             author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
-            affiliations = [extract_text_from_spans(author, 'ltx_role_address', 'Affiliations') for author in authors]
+            regex_pattern = re.compile(r'.*?(university|institute|college|school|department|foundation).*', re.IGNORECASE)
+            affiliations_element = soup.find(['div', 'span'], string=regex_pattern)
+            affiliations = extract_keywords(affiliations_element)
+            #affiliations = [extract_text_from_spans(author, 'ltx_role_address', 'Affiliations') for author in authors]
             #emails = [extract_text_from_spans(author, 'ltx_role_email', 'Emails') for author in authors]
             emails = scrape_emails_from_html(soup)
 
