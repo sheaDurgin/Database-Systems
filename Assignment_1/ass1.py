@@ -16,18 +16,23 @@ def extract_text_from_spans(element, class_name, element_name):
     else:
         return f"no {element_name}"
 
+# pattern = re.compile(r'\b(key ?-?words)(.*)\s*:\s*')
+# if re.search(pattern, keywords_text.lower()):
+#     keywords_text = re.sub(pattern, "", keywords_text.lower())
+
 def extract_keywords(keywords_element):
     keywords = []
     if keywords_element:
         keywords_text = clean_text(keywords_element.get_text(strip=True))
-        pattern = re.compile(r'\b(key ?-?words)(.*)\s*:\s*')
-        if re.search(pattern, keywords_text.lower()):
-            keywords_text = re.sub(pattern, "", keywords_text.lower())
-        if "keywords:" in keywords_text.lower():
-            keywords_text = keywords_text.lower().replace("keywords:", "")
-        if "index terms:" in keywords_text.lower():
-            keywords_text = keywords_text.lower().replace("index terms:", "")
+        
+        # Split the text based on "keywords:" and "index terms:"
+        # We want the text that comes after these tokens
+        keywords_split = re.split(r'\bkeywords:|index terms:', keywords_text, flags=re.IGNORECASE)
+        if len(keywords_split) > 1:
+            keywords_text = keywords_split[-1]
+        
         keywords = [keyword.strip() for keyword in keywords_text.split(',')]
+
     return keywords
 
 def remove_superscripts(soup):
@@ -39,7 +44,7 @@ def remove_superscripts(soup):
 #folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
 folder_path = '../arxiv-papers/'
 # chane to within Ass1 folder
-output_tsv_path = '../output.tsv'
+output_tsv_path = '../test.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
