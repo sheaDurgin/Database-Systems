@@ -16,24 +16,20 @@ def extract_text_from_spans(element, class_name, element_name):
     else:
         return f"no {element_name}"
 
-# pattern = re.compile(r'\b(key ?-?words)(.*)\s*:\s*')
-# if re.search(pattern, keywords_text.lower()):
-#     keywords_text = re.sub(pattern, "", keywords_text.lower())
-
-def extract_keywords(keywords_element):
-    keywords = []
-    if keywords_element:
-        keywords_text = clean_text(keywords_element.get_text(strip=True))
+def extract_values(values_element):
+    values = []
+    if values_element:
+        values_text = clean_text(values_element.get_text(strip=True))
         
         # Split the text based on "keywords:" and "index terms:"
         # We want the text that comes after these tokens
-        keywords_split = re.split(r'\bkeywords:|index terms:', keywords_text, flags=re.IGNORECASE)
-        if len(keywords_split) > 1:
-            keywords_text = keywords_split[-1]
+        values_split = re.split(r'\bkeywords:|index terms:', values_text, flags=re.IGNORECASE)
+        if len(values_split) > 1:
+            values_text = values_split[-1]
         
-        keywords = [keyword.strip() for keyword in keywords_text.split(',')]
+        values = [value.strip() for value in values_text.split(',')]
 
-    return keywords
+    return values
 
 def remove_superscripts(soup):
     # may need to add more elements
@@ -41,12 +37,39 @@ def remove_superscripts(soup):
         element.extract()
 
 # folder_path = '../arxiv-papers/'
-#folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
-folder_path = '../arxiv-papers/'
+folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
+# folder_path = '../arxiv-papers/'
 # chane to within Ass1 folder
 output_tsv_path = '../test.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
+
+def process_author_names(authors):
+    author_names = []
+    for author in authors:
+        author_name = extract_text_from_spans(author, 'ltx_personname', 'Author Names')
+        # Remove affiliations and emails from author names
+        author_name = re.sub(r'\S+@\S+', '', author_name)  # Remove emails
+        author_name = re.sub(r'\([^)]*\)', '', author_name)  # Remove affiliations in parentheses
+        author_name = author_name.strip()
+        author_names.append(author_name)
+    return author_names
+
+def extract_and_clean_affiliations(soup):
+    affiliations_element = soup.find(['div', 'span'], class_={
+        "ltx_role_address",
+        "ltx_role_affiliation",
+        "ltx_note_type",
+        "ltx_affiliation_institution",
+        "ltx_author_notes",
+        "ltx_contact"
+    })
+    affiliations_text = affiliations_element.get_text(strip=True) if affiliations_element else ""
+    # Check for emails in affiliations and remove them
+    affiliations_text = re.sub(r'\S+@\S+', '', affiliations_text)
+    affiliations_text = clean_text(affiliations_text)
+    affiliations = [aff.strip() for aff in affiliations_text.split(',')]
+    return affiliations
 
 def scrape_emails_from_html(soup):
     # Define a regular expression pattern to match email addresses
@@ -69,12 +92,10 @@ def process_html_file(filename):
 
             authors = soup.find_all('div', class_='ltx_authors')
             remove_superscripts(soup)
-            author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
-            regex_pattern = re.compile(r'.*?(university|institute|college|school|department|foundation).*', re.IGNORECASE)
-            affiliations_element = soup.find(['div', 'span'], string=regex_pattern)
-            affiliations = extract_keywords(affiliations_element)
-            #affiliations = [extract_text_from_spans(author, 'ltx_role_address', 'Affiliations') for author in authors]
-            #emails = [extract_text_from_spans(author, 'ltx_role_email', 'Emails') for author in authors]
+            # author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
+            author_names = process_author_names(authors)
+            affiliations = extract_and_clean_affiliations(soup)
+
             emails = scrape_emails_from_html(soup)
 
             abstract_element = soup.find('p', class_='ltx_p')
@@ -83,7 +104,7 @@ def process_html_file(filename):
             pattern = re.compile(r'.*key ?-?words.*', re.IGNORECASE)
             keywords_element = soup.find('div', class_="ltx_keywords") or soup.find('div', class_='ltx_classification') or soup.find(['div', 'span'], string=pattern)
             # keywords_element = soup.find(['div', 'span'], text=pattern)
-            keywords = extract_keywords(keywords_element)
+            keywords = extract_values(keywords_element)
 
             return [title, ' '.join(author_names), ' '.join(affiliations), ' '.join(emails), abstract, ' | '.join(keywords)]
 
