@@ -1,2 +1,1 @@
-# Database-Systems
-databaseseessss
+# Database Systems Assignments
