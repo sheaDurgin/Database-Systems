@@ -12,9 +12,9 @@ This folder contains the program to scrape ar5ive html files into a tsv and a pr
 
 ## Installation
 
-To run this code, you will need to download arxiv papers as html from [ar5ive](https://ar5iv.labs.arxiv.org)
+To run this code, you will need to download arxiv papers as html from [ar5ive](https://ar5iv.labs.arxiv.org).
 
-You can either clone the entire repository or this folder specifically, you can do so by following these steps
+You can either clone the entire repository or this folder specifically, you can do so by following these steps:
 
     Move to the directory you want to clone to
     git init <repository>
@@ -24,7 +24,7 @@ You can either clone the entire repository or this folder specifically, you can 
     echo "Assignment_1/" >> .git/info/sparse-checkout
     git pull origin main
 
-The necessary installs for the code are as such
+The necessary installs for the code are as such:
 
     beautifulsoup4
     tqdm
@@ -54,4 +54,6 @@ Our program uses a combination of both regex techniques and the beautifulsoup li
     Completely Empty Rows: 0
 
 ## Conclusion
-It is quite difficult to make an all purpose program to extract information from ar5ive html files. Not every paper was formatted in the same way, thus the resulting html doesn't follow the exact standards as each other. However, a lot of them do follow similar rules, so it is possible to get a good amount of data from them.
+The data extraction process captures a subset of the content available in arXiv papers. There is room for further refinement to extract affiliations, email addresses, and keywords more effectively. Exploring alternative methods for keyword extraction, such as employing YAKE!, is also worth considering.
+
+However, it's important to acknowledge that some data may remain elusive in these papers. This is due to the absence of a consistent pattern across all papers. Enforcing a uniform extraction method for all papers is likely to miss out on unique cases and may not fully resolve missing data issues.
