@@ -36,11 +36,8 @@ def remove_superscripts(soup):
     for element in soup.find_all('math'):
         element.extract()
 
-# folder_path = '../arxiv-papers/'
-folder_path = '../../../../shea.durgin/Database-Systems/arxiv-papers/'
-# folder_path = '../arxiv-papers/'
-# chane to within Ass1 folder
-output_tsv_path = '../test.tsv'
+folder_path = 'ar5ive/papers/path/here'
+output_tsv_path = 'scraped_ar5ive.tsv'
 
 html_files = sorted([filename for filename in os.listdir(folder_path) if filename.endswith('.html')])
 
@@ -92,7 +89,6 @@ def process_html_file(filename):
 
             authors = soup.find_all('div', class_='ltx_authors')
             remove_superscripts(soup)
-            # author_names = [extract_text_from_spans(author, 'ltx_personname', 'Author Names') for author in authors]
             author_names = process_author_names(authors)
             affiliations = extract_and_clean_affiliations(soup)
 
@@ -103,7 +99,6 @@ def process_html_file(filename):
 
             pattern = re.compile(r'.*key ?-?words.*', re.IGNORECASE)
             keywords_element = soup.find('div', class_="ltx_keywords") or soup.find('div', class_='ltx_classification') or soup.find(['div', 'span'], string=pattern)
-            # keywords_element = soup.find(['div', 'span'], text=pattern)
             keywords = extract_values(keywords_element)
 
             return [title, ' '.join(author_names), ' '.join(affiliations), ' '.join(emails), abstract, ' | '.join(keywords)]
