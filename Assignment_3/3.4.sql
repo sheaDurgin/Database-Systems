@@ -1,0 +1,3 @@
+SELECT ID
+FROM Paper
+WHERE ID NOT IN (SELECT CitingPaperID FROM Cites);

@@ -1,0 +1,9 @@
+SELECT COUNT(*)
+FROM Write AS W
+JOIN Author AS A ON W.FNAME = A.FNAME AND W.LNAME = A.LNAME
+WHERE W.PaperID IN (
+    SELECT DISTINCT PaperID
+    FROM Write
+    WHERE (FNAME, LNAME) = ('Wu', 'Wei')
+)
+AND (A.FNAME, A.LNAME) != ('Wu', 'Wei');
